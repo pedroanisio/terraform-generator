@@ -1,0 +1,57 @@
+vm:
+  name: "codeserver"
+  description: "VM thats run my VS COde server. And interacts with filserver (gluster fs) backend"
+  proxmox_host: "pve-node-0"
+  os_type: "cloud-init"
+  template_name: "debian-12-genericcloud-01"
+  user: pals
+  count: 1
+  machine:
+    cpu:
+      model: "host"
+      cores: 4
+      sockets: 1
+    memory: 4192
+    networks:
+      skip_ipv6: true
+      nic:
+        - model: "virtio"
+          name: "vmbr0"
+          vlan_num: "1010"
+          ip:
+            cidr: "10.10.10.17/24"
+  disks:
+    scsi:
+    - storage: "zfs"
+      size: 32
+      discard: true
+      emulatessd: true
+      serial: "MYDISK001"         
+    - storage: "zfs"
+      size: 64
+      discard: true
+      emulatessd: true
+      serial: "MYDISK002" 
+  scsihw: "virtio-scsi-pci"
+  bootdisk: "scsi0"
+
+  config:
+    agent: true
+    cicustom_path: "local:snippets/cloud-init-config.yaml"
+    ssh_key:
+      public_key_path: "~/.ssh/id_ed25519"
+    filesystem:
+      type: "ext4"
+      devices:
+        - device: "/dev/sdb"
+          mount_point: "/srv/scripts"
+        - device: "/dev/sdc"
+          mount_point: "/srv/configs"
+        - device: "/dev/sdd"
+          mount_point: "/srv/code"
+        - device: "/dev/sde"
+          mount_point: "/srv/vz"                 
+    lifecycle_ignore_changes:
+      - ciuser
+      - sshkeys
+      - network

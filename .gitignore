@@ -1,0 +1,4 @@
+lab.internal/base/.terraform.lock.hcl
+lab.internal/base/.terraform/providers/registry.terraform.io/telmate/proxmox/3.0.1-rc3/linux_amd64/terraform-provider-proxmox_v3.0.1-rc3
+lab.internal/base/.terraform/providers/registry.terraform.io/telmate/proxmox/3.0.1-rc3/linux_amd64/LICENSE
+lab.internal/base/_proxmox_auth.tf

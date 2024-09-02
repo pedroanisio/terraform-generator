@@ -1,0 +1,66 @@
+{% set ip_info = vm.machine.networks.nic[0].ip.cidr | extract_ip_and_cidr %}
+
+resource "proxmox_vm_qemu" "new server" {
+
+  count = {{ vm.count | int }} # node counts
+
+  name        = "{{ vm.name }}-${count.index + 1}"
+  target_node = "{{ vm.proxmox_host }}"
+#  target_node = "pve-nuc-0${count.index + 1}"
+  clone       = "{{ vm.template_name }}"
+  agent       = {{ vm.config.agent | int }}
+
+  os_type     = "{{ vm.os_type }}"
+  cores       = {{ vm.machine.cpu.cores }}
+  sockets     = {{ vm.machine.cpu.sockets }}
+  cpu         = "{{ vm.machine.cpu.model }}"
+  memory      = {{ vm.machine.memory }}
+  scsihw      = "{{ vm.scsihw }}"
+  bootdisk    = "{{ vm.bootdisk }}"
+
+  disks {
+    ide {
+        ide2 {
+            cloudinit {
+                storage = "zfs"
+            }
+        }
+    }     
+    scsi {
+      {% for scsi_disk in vm.disks.scsi %}
+      scsi{{ loop.index0 }} {
+        disk {
+          size        = "{{ scsi_disk.size }}G"
+          storage     = "{{ scsi_disk.storage }}"
+          discard     = {{ scsi_disk.discard | lower if scsi_disk.discard is defined else "false" }}  
+          iothread    = {{ scsi_disk.iothread | lower if scsi_disk.iothreadis is defined else "false" }}       
+          emulatessd  = {{ scsi_disk.emulatessd | lower if scsi_disk.emulatessd is defined else "false" }}
+        }
+      }
+      {% endfor %}
+    }
+  }
+
+  network {
+    model  = "{{ vm.machine.networks.nic[0].model }}"
+    bridge = "{{ vm.machine.networks.nic[0].name }}"
+    tag    = "{{ vm.machine.networks.nic[0].vlan_num }}"
+  }
+
+  # Cloud Init Settings
+  ipconfig0 = "ip=${cidrhost("{{ vm.machine.networks.nic[0].ip.cidr }}", 40 + count.index)}/24,gw=${cidrhost("{{ vm.machine.networks.nic[0].ip.cidr }}", 1)}"
+
+  skip_ipv6 = {{ vm.machine.networks.skip_ipv6 | lower }}
+
+  cicustom = "user={{ vm.config.cicustom_path }}"
+
+  lifecycle {
+    ignore_changes = [
+      {% for item in vm.config.lifecycle_ignore_changes %}
+      {{ item }},
+      {% endfor %}
+    ]
+  }
+
+}
+
